@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>感谢投票</title>
+</head>
+<body>
+  <h1 id="title">你好，JavaScript</h1>
+  <h2 > 请点击下面的按钮开始投票 </h2>
+  <button id="btn">投票</button>
+  <p>点击次数：<span id="count">0</span></p>
+  <span> 这是我写的第一个网页 </span>
+  <button id="resetBtn"> 重置 </button>
+
+  <script>
+    let count = 0
+    const btn = document.getElementById('btn')
+    const resetBtn = document.getElementById('resetBtn')
+    const countEl = document.getElementById('count')
+    const titleEl = document.getElementById('title')
+
+    btn.addEventListener('click', () => {
+      count++
+      countEl.textContent = count
+      titleEl.textContent = `你投了 ${count} 票`
+
+      if(count >= 5){
+        btn.disabled = true
+        titleEl.textContent = '投票已达上限'
+      }
+    })
+
+    resetBtn.addEventListener('click', () => {
+      count = 0
+      countEl.textContent = count
+      titleEl.textContent = '你好，JavaScript'
+      btn.disabled = false
+    })
+  </script>
+</body>
+</html>

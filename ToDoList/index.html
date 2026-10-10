@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>待办清单</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>待办清单</h1>
+      <p id="stats" class="stats"></p>
+    </header>
+
+    <!-- 添加区 -->
+    <div class="add-section">
+      <input id="todoInput" type="text" placeholder="添加新任务...">
+      <select id="categorySelect">
+        <option value="工作">工作</option>
+        <option value="学习">学习</option>
+        <option value="生活">生活</option>
+      </select>
+      <button id="addBtn">添加</button>
+    </div>
+
+    <!-- 工具栏：搜索 + 分类筛选 + 状态筛选 -->
+    <div class="toolbar">
+      <input id="searchInput" type="text" placeholder="搜索...">
+      <select id="categoryFilter">
+        <option value="all">全部分类</option>
+        <option value="工作">工作</option>
+        <option value="学习">学习</option>
+        <option value="生活">生活</option>
+      </select>
+      <div class="filter-group">
+        <button class="filter-btn" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="active">未完成</button>
+        <button class="filter-btn" data-filter="done">已完成</button>
+      </div>
+    </div>
+
+    <!-- 列表 -->
+    <ul id="todoList" class="todo-list"></ul>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
