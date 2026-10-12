@@ -114,42 +114,48 @@ async function searchCity(query) {
 
   try {
     const res = await fetch(
-      `https://restapi.amap.com/v3/geocode/geo?address=${encodeURIComponent(query)}&key=${AMAP_KEY}`
+      `https://restapi.amap.com/v3/assistant/inputtips?keywords=${encodeURIComponent(query)}&key=${AMAP_KEY}`
     )
     const data = await res.json()
 
-    if (data.status !== '1' || !data.geocodes || data.geocodes.length === 0) {
+    if (data.status !== '1' || !data.tips || data.tips.length === 0) {
       resultsEl.classList.add('hidden')
       return
     }
 
-    renderResults(data.geocodes)
+    // 过滤掉没有 location 的结果（有些是公交站、商铺，没有经纬度）
+    const validTips = data.tips.filter(tip => tip.location && tip.location.includes(','))
+    renderResults(validTips)
   } catch (err) {
     console.error(err)
   }
 }
 
-function renderResults(results) {
+function renderResults(tips) {
   resultsEl.innerHTML = ''
 
-  results.forEach(r => {
+  tips.forEach(tip => {
     const li = document.createElement('li')
-    li.innerHTML = `${r.formatted_address}`
 
-    const [lng, lat] = r.location.split(',')
+    // 显示名称 + 所在区域
+    const district = tip.district || ''
+    li.innerHTML = `${tip.name}${district ? `<small>${district}</small>` : ''}`
+
+    const [lng, lat] = tip.location.split(',')
 
     li.addEventListener('click', () => {
       resultsEl.classList.add('hidden')
       cityInput.value = ''
-      
-      let name = r.district || r.city || r.province || '未知' || r.formatted_address
+
+      // 优先用 district 或 name 作为城市名
+      let name = tip.district || tip.name || '未知'
       name = name.trim() || '未知'
-      
+
       fetchWeather({
         latitude: parseFloat(lat),
         longitude: parseFloat(lng),
         shortName: name,
-        fullName: r.formatted_address
+        fullName: tip.district || tip.name
       })
     })
 

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>记账本</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>记账本</h1>
+      <p id="balance" class="balance">¥0.00</p>
+      <p class="balance-label">当前结余</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span>总收入</span>
+        <b id="totalIncome" class="income">¥0.00</b>
+      </div>
+      <div class="stat-item">
+        <span>总支出</span>
+        <b id="totalExpense" class="expense">¥0.00</b>
+      </div>
+    </div>
+
+    <!-- 添加表单 -->
+    <div class="form">
+      <div class="form-row">
+        <select id="type">
+          <option value="expense">支出</option>
+          <option value="income">收入</option>
+        </select>
+        <input id="amount" type="number" placeholder="金额" min="0" step="0.01">
+      </div>
+
+      <div class="form-row">
+        <select id="category">
+          <option value="餐饮">餐饮</option>
+          <option value="交通">交通</option>
+          <option value="购物">购物</option>
+          <option value="居住">居住</option>
+          <option value="娱乐">娱乐</option>
+          <option value="工资">工资</option>
+          <option value="其他">其他</option>
+        </select>
+        <input id="date" type="date">
+      </div>
+
+      <input id="note" type="text" placeholder="备注（可选）">
+
+      <button id="addBtn">添加记录</button>
+    </div>
+
+    <!-- 列表 -->
+    <ul id="list" class="list"></ul>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
