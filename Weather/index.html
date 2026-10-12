@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>天气查询</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>天气查询</h1>
+      <button id="locateBtn" class="locate-btn">📍 定位</button>
+    </header>
+
+    <div class="search-box">
+      <input id="cityInput" type="text" placeholder="搜索城市 / 区县，如 武侯区">
+      <ul id="results" class="results hidden"></ul>
+    </div>
+
+    <div id="history" class="history"></div>
+
+    <p id="status" class="status"></p>
+
+    <div id="weather" class="weather hidden">
+      <h2 id="cityName"></h2>
+
+      <div class="current">
+        <div id="weatherEmoji" class="emoji">☀️</div>
+        <div>
+          <div id="temperature" class="temperature">--°</div>
+          <div id="description" class="description">--</div>
+        </div>
+      </div>
+
+      <div class="range">
+        今日 <b id="tempMin">--</b> ~ <b id="tempMax">--</b>
+      </div>
+
+      <div class="details">
+        <div class="detail-item"><span>体感</span><b id="feelsLike">--</b></div>
+        <div class="detail-item"><span>湿度</span><b id="humidity">--</b></div>
+        <div class="detail-item"><span>风速</span><b id="wind">--</b></div>
+      </div>
+
+      <div id="forecast" class="forecast"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

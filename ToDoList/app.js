@@ -16,6 +16,16 @@
     const statsEl = document.getElementById('stats')
 
 
+    function debounce(fn, delay) {
+      let timer = null
+      return function (...args) {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        fn.apply(this, args)
+      }, delay)
+      }
+    }
+
     // 渲染函数：根据 todos 数组，重新画出整个列表
     function render() {
       save()
@@ -113,10 +123,12 @@
     })
 
     //搜索
-    searchInput.addEventListener('input', (e) => {
+    const handleSearch = debounce((e) => {
       searchKeyword = e.target.value.trim()
       render()
-    })
+    }, 300)
+
+    searchInput.addEventListener('input', handleSearch)
 
     //分类筛选
     categoryFilterSelect.addEventListener('change', (e) => {
