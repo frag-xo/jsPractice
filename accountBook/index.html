@@ -2,10 +2,16 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>记账本</title>
-  <link rel="manifest" href="manifest.json">
+  <meta name="description" content="一个纯前端的记账小工具：收支记录、分类统计、预算提醒、CSV 导入导出，支持离线使用。">
   <meta name="theme-color" content="#4f7cff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="记账本">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,7 +19,7 @@
     <!-- 顶部统计 -->
     <header class="top">
       <h1>记账本</h1>
-      <button id="themeBtn" class="icon-btn" title="切换主题">🌙</button>
+      <button id="themeBtn" class="icon-btn" type="button" title="切换主题" aria-label="切换深色/浅色主题">🌙</button>
 
       <div class="balance-card">
         <p class="balance-label">当前结余</p>
@@ -24,7 +30,7 @@
         </div>
         <div id="budgetBar" class="budget-bar hidden">
           <div class="budget-info">
-            <span>预算进度</span>
+            <span>本月预算</span>
             <b id="budgetText">--</b>
           </div>
           <div class="budget-track">
@@ -36,10 +42,10 @@
 
     <!-- 标签页 -->
     <nav class="tabs">
-      <button class="tab active" data-tab="records">记录</button>
-      <button class="tab" data-tab="stats">统计</button>
-      <button class="tab" data-tab="compare">对比</button>
-      <button class="tab" data-tab="settings">设置</button>
+      <button class="tab active" type="button" data-tab="records">记录</button>
+      <button class="tab" type="button" data-tab="stats">统计</button>
+      <button class="tab" type="button" data-tab="compare">对比</button>
+      <button class="tab" type="button" data-tab="settings">设置</button>
     </nav>
 
     <!-- 记录页 -->
@@ -47,61 +53,62 @@
       <!-- 添加/编辑表单 -->
       <div class="form" id="form">
         <div class="form-row">
-          <select id="type">
+          <select id="type" aria-label="类型">
             <option value="expense">支出</option>
             <option value="income">收入</option>
           </select>
-          <input id="amount" type="number" placeholder="金额" min="0" step="0.01">
+          <input id="amount" type="number" placeholder="金额" min="0" step="0.01" inputmode="decimal" aria-label="金额">
         </div>
         <div class="form-row">
-          <select id="category"></select>
-          <input id="date" type="date">
+          <select id="category" aria-label="分类"></select>
+          <input id="date" type="date" aria-label="日期">
         </div>
-        <input id="note" type="text" placeholder="备注（可选）">
+        <input id="note" type="text" placeholder="备注（可选）" maxlength="60" aria-label="备注">
         <div class="form-row">
-          <button id="addBtn">添加记录</button>
-          <button id="cancelEditBtn" class="secondary hidden">取消编辑</button>
+          <button id="addBtn" type="button">添加记录</button>
+          <button id="cancelEditBtn" class="secondary hidden" type="button">取消编辑</button>
         </div>
       </div>
 
       <!-- 筛选器 -->
       <div class="filters">
         <div class="filter-row">
-          <input id="searchInput" type="text" placeholder="搜索备注...">
+          <input id="searchInput" type="text" placeholder="搜索备注或分类..." aria-label="搜索">
         </div>
         <div class="filter-row">
-          <select id="yearFilter">
+          <select id="yearFilter" aria-label="年份">
             <option value="all">全部年份</option>
           </select>
-          <select id="monthFilter">
+          <select id="monthFilter" aria-label="月份">
             <option value="all">全部月份</option>
           </select>
         </div>
         <div class="filter-row">
-          <select id="typeFilter">
+          <select id="typeFilter" aria-label="类型筛选">
             <option value="all">全部类型</option>
             <option value="income">收入</option>
             <option value="expense">支出</option>
           </select>
-          <select id="categoryFilter">
+          <select id="categoryFilter" aria-label="分类筛选">
             <option value="all">全部分类</option>
           </select>
         </div>
         <div class="filter-row">
-          <select id="sortBy">
+          <select id="sortBy" aria-label="排序字段">
             <option value="date">按日期</option>
             <option value="amount">按金额</option>
           </select>
-          <select id="sortOrder">
+          <select id="sortOrder" aria-label="排序方向">
             <option value="desc">降序</option>
             <option value="asc">升序</option>
           </select>
         </div>
       </div>
 
-      <!-- 批量管理按钮 -->
+      <!-- 列表头部：记录条数 + 批量管理 -->
       <div class="list-header">
-        <button id="batchToggleBtn" class="batch-toggle-btn">批量管理</button>
+        <span id="recordCount" class="record-count"></span>
+        <button id="batchToggleBtn" class="batch-toggle-btn" type="button">批量管理</button>
       </div>
 
       <!-- 批量操作栏 -->
@@ -111,8 +118,8 @@
           全选
         </label>
         <span id="selectedCount" class="selected-count">已选 0 条</span>
-        <button id="batchDeleteBtn" class="danger-btn" disabled>删除选中</button>
-        <button id="batchCancelBtn" class="secondary-btn">取消</button>
+        <button id="batchDeleteBtn" class="danger-btn" type="button" disabled>删除选中</button>
+        <button id="batchCancelBtn" class="secondary-btn" type="button">取消</button>
       </div>
 
       <!-- 记录列表 -->
@@ -123,6 +130,7 @@
     <section id="tab-stats" class="tab-panel">
       <div class="card">
         <h3>分类占比（支出）</h3>
+        <p class="hint">统计全部记录，不受"记录"页筛选影响</p>
         <div id="pieChart" class="chart"></div>
       </div>
       <div class="card">
@@ -136,20 +144,20 @@
       <div class="card">
         <h3>收支对比</h3>
         <div class="form-row">
-          <select id="compareType">
+          <select id="compareType" aria-label="对比维度">
             <option value="month">按月对比</option>
             <option value="year">按年对比</option>
           </select>
         </div>
         <div class="form-row" id="monthCompareRow">
-          <input id="period1Month" type="month">
-          <input id="period2Month" type="month">
+          <input id="period1Month" type="month" aria-label="月份一">
+          <input id="period2Month" type="month" aria-label="月份二">
         </div>
         <div class="form-row hidden" id="yearCompareRow">
-          <input id="period1Year" type="number" placeholder="年份1" min="2000" max="2100">
-          <input id="period2Year" type="number" placeholder="年份2" min="2000" max="2100">
+          <input id="period1Year" type="number" placeholder="年份1" min="2000" max="2100" aria-label="年份一">
+          <input id="period2Year" type="number" placeholder="年份2" min="2000" max="2100" aria-label="年份二">
         </div>
-        <button id="compareBtn">开始对比</button>
+        <button id="compareBtn" type="button">开始对比</button>
         <div id="compareResult" class="compare-result"></div>
       </div>
     </section>
@@ -159,17 +167,18 @@
       <div class="card">
         <h3>预算设置</h3>
         <div class="form-row">
-          <input id="budgetMonth" type="month">
-          <input id="budgetAmount" type="number" placeholder="预算金额" min="0" step="0.01">
+          <input id="budgetMonth" type="month" aria-label="预算月份">
+          <input id="budgetAmount" type="number" placeholder="预算金额" min="0" step="0.01" inputmode="decimal" aria-label="预算金额">
         </div>
-        <button id="saveBudgetBtn">保存预算</button>
+        <button id="saveBudgetBtn" type="button">保存预算</button>
+        <p id="budgetHint" class="hint"></p>
       </div>
 
       <div class="card">
         <h3>分类管理</h3>
         <div class="form-row">
-          <input id="newCategory" type="text" placeholder="新分类名称">
-          <button id="addCategoryBtn">添加</button>
+          <input id="newCategory" type="text" placeholder="新分类名称" maxlength="12" aria-label="新分类名称">
+          <button id="addCategoryBtn" type="button">添加</button>
         </div>
         <div id="categoryList" class="category-list"></div>
       </div>
@@ -177,18 +186,25 @@
       <div class="card">
         <h3>数据管理</h3>
         <div class="form-row">
-          <button id="exportBtn">导出 CSV</button>
+          <button id="exportBtn" type="button">导出 CSV</button>
           <label class="file-label">
             导入 CSV
-            <input id="importInput" type="file" accept=".csv" hidden>
+            <input id="importInput" type="file" accept=".csv,text/csv" hidden>
           </label>
         </div>
         <p id="importStatus" class="status"></p>
+        <p class="hint">
+          CSV 列顺序：类型,金额,分类,日期,备注。日期用 <code>YYYY-MM-DD</code>；
+          文件请存成 <strong>UTF-8</strong> 编码，否则中文会乱码。重复的记录会自动跳过。
+        </p>
       </div>
+
+      <p class="hint app-foot">所有数据只保存在这台设备的浏览器里，不会上传。换设备请用"导出 CSV"迁移。</p>
     </section>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <!-- ECharts 本地文件：不再依赖 CDN，断网也能画图 -->
+  <script src="vendor/echarts.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
