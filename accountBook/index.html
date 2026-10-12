@@ -2,60 +2,193 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>记账本</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f7cff">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app">
-    <header>
+    <!-- 顶部统计 -->
+    <header class="top">
       <h1>记账本</h1>
-      <p id="balance" class="balance">¥0.00</p>
-      <p class="balance-label">当前结余</p>
+      <button id="themeBtn" class="icon-btn" title="切换主题">🌙</button>
+
+      <div class="balance-card">
+        <p class="balance-label">当前结余</p>
+        <p id="balance" class="balance">¥0.00</p>
+        <div class="mini-stats">
+          <div><span>收入</span><b id="totalIncome" class="income">¥0.00</b></div>
+          <div><span>支出</span><b id="totalExpense" class="expense">¥0.00</b></div>
+        </div>
+        <div id="budgetBar" class="budget-bar hidden">
+          <div class="budget-info">
+            <span>预算进度</span>
+            <b id="budgetText">--</b>
+          </div>
+          <div class="budget-track">
+            <div id="budgetFill" class="budget-fill"></div>
+          </div>
+        </div>
+      </div>
     </header>
 
-    <div class="stats">
-      <div class="stat-item">
-        <span>总收入</span>
-        <b id="totalIncome" class="income">¥0.00</b>
-      </div>
-      <div class="stat-item">
-        <span>总支出</span>
-        <b id="totalExpense" class="expense">¥0.00</b>
-      </div>
-    </div>
+    <!-- 标签页 -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="records">记录</button>
+      <button class="tab" data-tab="stats">统计</button>
+      <button class="tab" data-tab="compare">对比</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </nav>
 
-    <!-- 添加表单 -->
-    <div class="form">
-      <div class="form-row">
-        <select id="type">
-          <option value="expense">支出</option>
-          <option value="income">收入</option>
-        </select>
-        <input id="amount" type="number" placeholder="金额" min="0" step="0.01">
-      </div>
-
-      <div class="form-row">
-        <select id="category">
-          <option value="餐饮">餐饮</option>
-          <option value="交通">交通</option>
-          <option value="购物">购物</option>
-          <option value="居住">居住</option>
-          <option value="娱乐">娱乐</option>
-          <option value="工资">工资</option>
-          <option value="其他">其他</option>
-        </select>
-        <input id="date" type="date">
+    <!-- 记录页 -->
+    <section id="tab-records" class="tab-panel active">
+      <!-- 添加/编辑表单 -->
+      <div class="form" id="form">
+        <div class="form-row">
+          <select id="type">
+            <option value="expense">支出</option>
+            <option value="income">收入</option>
+          </select>
+          <input id="amount" type="number" placeholder="金额" min="0" step="0.01">
+        </div>
+        <div class="form-row">
+          <select id="category"></select>
+          <input id="date" type="date">
+        </div>
+        <input id="note" type="text" placeholder="备注（可选）">
+        <div class="form-row">
+          <button id="addBtn">添加记录</button>
+          <button id="cancelEditBtn" class="secondary hidden">取消编辑</button>
+        </div>
       </div>
 
-      <input id="note" type="text" placeholder="备注（可选）">
+      <!-- 筛选器 -->
+      <div class="filters">
+        <div class="filter-row">
+          <input id="searchInput" type="text" placeholder="搜索备注...">
+        </div>
+        <div class="filter-row">
+          <select id="yearFilter">
+            <option value="all">全部年份</option>
+          </select>
+          <select id="monthFilter">
+            <option value="all">全部月份</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <select id="typeFilter">
+            <option value="all">全部类型</option>
+            <option value="income">收入</option>
+            <option value="expense">支出</option>
+          </select>
+          <select id="categoryFilter">
+            <option value="all">全部分类</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <select id="sortBy">
+            <option value="date">按日期</option>
+            <option value="amount">按金额</option>
+          </select>
+          <select id="sortOrder">
+            <option value="desc">降序</option>
+            <option value="asc">升序</option>
+          </select>
+        </div>
+      </div>
 
-      <button id="addBtn">添加记录</button>
-    </div>
+      <!-- 批量管理按钮 -->
+      <div class="list-header">
+        <button id="batchToggleBtn" class="batch-toggle-btn">批量管理</button>
+      </div>
 
-    <!-- 列表 -->
-    <ul id="list" class="list"></ul>
+      <!-- 批量操作栏 -->
+      <div id="batchBar" class="batch-bar hidden">
+        <label class="checkbox-label">
+          <input type="checkbox" id="selectAll">
+          全选
+        </label>
+        <span id="selectedCount" class="selected-count">已选 0 条</span>
+        <button id="batchDeleteBtn" class="danger-btn" disabled>删除选中</button>
+        <button id="batchCancelBtn" class="secondary-btn">取消</button>
+      </div>
+
+      <!-- 记录列表 -->
+      <ul id="list" class="list"></ul>
+    </section>
+
+    <!-- 统计页 -->
+    <section id="tab-stats" class="tab-panel">
+      <div class="card">
+        <h3>分类占比（支出）</h3>
+        <div id="pieChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h3>近 6 个月收支趋势</h3>
+        <div id="lineChart" class="chart"></div>
+      </div>
+    </section>
+
+    <!-- 对比页 -->
+    <section id="tab-compare" class="tab-panel">
+      <div class="card">
+        <h3>收支对比</h3>
+        <div class="form-row">
+          <select id="compareType">
+            <option value="month">按月对比</option>
+            <option value="year">按年对比</option>
+          </select>
+        </div>
+        <div class="form-row" id="monthCompareRow">
+          <input id="period1Month" type="month">
+          <input id="period2Month" type="month">
+        </div>
+        <div class="form-row hidden" id="yearCompareRow">
+          <input id="period1Year" type="number" placeholder="年份1" min="2000" max="2100">
+          <input id="period2Year" type="number" placeholder="年份2" min="2000" max="2100">
+        </div>
+        <button id="compareBtn">开始对比</button>
+        <div id="compareResult" class="compare-result"></div>
+      </div>
+    </section>
+
+    <!-- 设置页 -->
+    <section id="tab-settings" class="tab-panel">
+      <div class="card">
+        <h3>预算设置</h3>
+        <div class="form-row">
+          <input id="budgetMonth" type="month">
+          <input id="budgetAmount" type="number" placeholder="预算金额" min="0" step="0.01">
+        </div>
+        <button id="saveBudgetBtn">保存预算</button>
+      </div>
+
+      <div class="card">
+        <h3>分类管理</h3>
+        <div class="form-row">
+          <input id="newCategory" type="text" placeholder="新分类名称">
+          <button id="addCategoryBtn">添加</button>
+        </div>
+        <div id="categoryList" class="category-list"></div>
+      </div>
+
+      <div class="card">
+        <h3>数据管理</h3>
+        <div class="form-row">
+          <button id="exportBtn">导出 CSV</button>
+          <label class="file-label">
+            导入 CSV
+            <input id="importInput" type="file" accept=".csv" hidden>
+          </label>
+        </div>
+        <p id="importStatus" class="status"></p>
+      </div>
+    </section>
   </div>
 
-  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
