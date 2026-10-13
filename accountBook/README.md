@@ -47,6 +47,29 @@ python3 -m http.server 8000
 
 用 VS Code 的 Live Server 插件也可以。
 
+## 单元测试（Vitest）
+
+数据层（`js/tracker.js`）是纯逻辑，不碰 DOM，所以可以直接在 Node 里测，不需要浏览器、也不需要 jsdom。
+
+```bash
+npm install      # 首次运行，安装 vitest
+npm test         # 跑一遍全部用例（vitest run）
+npm run test:watch   # 开发时监听文件变化自动重跑
+```
+
+用例都在 `test/tracker.test.js`，共 31 条，覆盖：
+
+- **CSV 解析**：引号内的逗号 / 换行 / 转义引号、BOM、CRLF
+- **日期工具**：本地时间（避免 `toISOString()` 在东八区凌晨退回前一天）
+- **增改校验**：金额非数字、日期不存在时拒绝写入；字符串金额被归一化
+- **筛选**：不选年份跨年份按月筛、年 + 月、类型 + 分类组合、关键词
+- **排序**：同日按添加顺序、按金额、不改动原数组
+- **导入导出**：备注含换行也能往返、重复记录去重、脏数据跳过、新分类自动登记、表头可换序
+- **预算**：按月分别保存、超支标记、无预算返回 null
+- **统计**：收支结余、分类聚合倒序
+
+关于 localStorage：`js/storage.js` 用的是浏览器的 `localStorage`，Node 里没有这个全局对象。测试文件顶部用一个内存对象顶替了它，所以**不需要 jsdom**，整个测试跑完只要不到 0.1 秒。
+
 ## 部署到 GitHub Pages
 
 1. 把整个文件夹推到仓库

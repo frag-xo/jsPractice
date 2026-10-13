@@ -1,0 +1,7 @@
+# 依赖与缓存（不要提交，否则 GitHub Pages 仓库会变得很大）
+node_modules/
+.vitest/
+coverage/
+
+# macOS
+.DS_Store
