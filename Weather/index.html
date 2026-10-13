@@ -46,6 +46,15 @@
     </div>
   </div>
 
+  <!-- 高德 JS API（Web端 Key）。
+       安全性由高德控制台的「域名白名单」保证：别的域名即使拿到 Key，
+       调用也会被 Referer 校验拒绝（报 INVALID_USER_DOMAIN）。
+       安全密钥必须在 JS API 脚本之前设置。 -->
+  <script>
+    window._AMapSecurityConfig = { securityJsCode: 'bf59a25cfc4a0149b6c24a8bac65e7f1' }
+  </script>
+  <script src="https://webapi.amap.com/maps?v=2.0&amp;key=f755670bc0c7dab31cce0c68a9f40ce3&amp;plugin=AMap.AutoComplete,AMap.Geocoder"></script>
+
   <script src="app.js"></script>
 </body>
 </html>

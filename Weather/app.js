@@ -1,4 +1,83 @@
-const AMAP_KEY = 'ec366946308685f51ea408719d17b928'
+// ============================================================
+// 高德 JS API 服务层
+// 用的是「Web端(JS API)」类型的 Key，安全性由高德控制台的「域名白名单」
+// 保证：别的域名即使拿到 Key，调用也会被 Referer 校验拒绝。
+// Key 与安全密钥配置在 index.html 里（JS API 要求在前端可见，这是设计如此）。
+// ============================================================
+
+let amapServices = null   // 加载插件的 Promise，只初始化一次
+let autoComplete = null
+let geocoder = null
+let amapErrorShown = false
+
+/** 等 JS API 就绪并加载 AutoComplete / Geocoder 两个插件 */
+function loadAmapServices() {
+  if (amapServices) return amapServices
+  amapServices = new Promise((resolve, reject) => {
+    let waited = 0
+    const timer = setInterval(() => {
+      if (window.AMap) {
+        clearInterval(timer)
+        window.AMap.plugin(['AMap.AutoComplete', 'AMap.Geocoder'], () => resolve(window.AMap))
+      } else if ((waited += 100) >= 10000) {
+        clearInterval(timer)
+        reject(new Error('高德 JS API 加载超时'))
+      }
+    }, 100)
+  })
+  return amapServices
+}
+
+/** 只提示一次，避免用户每敲一个字就刷屏 */
+function reportAmapError(err) {
+  console.error('[天气] 高德服务调用失败：', err)
+  if (amapErrorShown) return
+  amapErrorShown = true
+  statusEl.textContent = '城市搜索不可用：请检查高德 Key 的「域名白名单」是否包含当前域名'
+}
+
+/** AutoComplete 的 location 可能是 LngLat 对象，也可能是 "lng,lat" 字符串 */
+function tipLocation(tip) {
+  const loc = tip && tip.location
+  if (!loc) return null
+  if (typeof loc === 'string') {
+    const [lng, lat] = loc.split(',').map(Number)
+    return Number.isFinite(lng) && Number.isFinite(lat) ? { longitude: lng, latitude: lat } : null
+  }
+  if (typeof loc.getLng === 'function' && typeof loc.getLat === 'function') {
+    return { longitude: loc.getLng(), latitude: loc.getLat() }
+  }
+  if (Number.isFinite(loc.lng) && Number.isFinite(loc.lat)) {
+    return { longitude: loc.lng, latitude: loc.lat }
+  }
+  return null
+}
+
+/** 逆地理编码的字段有时是数组（比如直辖市的 city），统一取成字符串 */
+function asText(value) {
+  if (Array.isArray(value)) return String(value[0] ?? '').trim()
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+/** 经纬度 → 可读地名；失败返回 null，由调用方决定怎么降级 */
+async function reverseGeocode(loc) {
+  const AMap = await loadAmapServices()
+  if (!geocoder) geocoder = new AMap.Geocoder()
+
+  return new Promise(resolve => {
+    geocoder.getAddress([loc.longitude, loc.latitude], (status, result) => {
+      if (status !== 'complete' || !result || !result.regeocode) { resolve(null); return }
+      const comp = result.regeocode.addressComponent || {}
+      const district = asText(comp.district)
+      const city = asText(comp.city)
+      const province = asText(comp.province)
+      resolve({
+        shortName: district || city || province || '当前位置',
+        fullName: [district || city, province].filter(Boolean).join(' · ') || '当前位置'
+      })
+    })
+  })
+}
 
 // ===== Open-Meteo weathercode → emoji / 描述 / 背景 =====
 const weatherCodeMap = {
@@ -105,7 +184,7 @@ function debounce(fn, delay) {
   }
 }
 
-// ===== 搜索城市（高德地理编码） =====
+// ===== 搜索城市（高德输入提示 AutoComplete） =====
 async function searchCity(query) {
   if (!query) {
     resultsEl.classList.add('hidden')
@@ -113,49 +192,71 @@ async function searchCity(query) {
   }
 
   try {
-    const res = await fetch(
-      `https://restapi.amap.com/v3/assistant/inputtips?keywords=${encodeURIComponent(query)}&key=${AMAP_KEY}`
-    )
-    const data = await res.json()
+    const AMap = await loadAmapServices()
+    if (!autoComplete) autoComplete = new AMap.AutoComplete({ city: '全国' })
 
-    if (data.status !== '1' || !data.tips || data.tips.length === 0) {
-      resultsEl.classList.add('hidden')
-      return
-    }
+    autoComplete.search(query, (status, result) => {
+      // error 通常意味着 Key 无效 / 域名白名单没放行 / 配额用尽
+      // —— 这种情况必须让用户看见，否则就是"输了城市没反应"
+      if (status === 'error') {
+        reportAmapError(new Error('AutoComplete 返回 error：请检查 Key 与域名白名单'))
+        resultsEl.classList.add('hidden')
+        return
+      }
 
-    // 过滤掉没有 location 的结果（有些是公交站、商铺，没有经纬度）
-    const validTips = data.tips.filter(tip => tip.location && tip.location.includes(','))
-    renderResults(validTips)
+      if (status !== 'complete' || !result || !result.tips || !result.tips.length) {
+        resultsEl.classList.add('hidden')
+        return
+      }
+
+      // 过滤掉没有经纬度的结果（公交站、商铺之类）
+      const tips = result.tips
+        .map(tip => ({ tip, loc: tipLocation(tip) }))
+        .filter(item => item.loc && item.tip.name)
+
+      if (!tips.length) {
+        resultsEl.classList.add('hidden')
+        return
+      }
+
+      renderResults(tips)
+    })
   } catch (err) {
-    console.error(err)
+    reportAmapError(err)
+    resultsEl.classList.add('hidden')
   }
 }
 
-function renderResults(tips) {
+function renderResults(items) {
   resultsEl.innerHTML = ''
 
-  tips.forEach(tip => {
+  items.forEach(({ tip, loc }) => {
     const li = document.createElement('li')
 
-    // 显示名称 + 所在区域
-    const district = tip.district || ''
-    li.innerHTML = `${tip.name}${district ? `<small>${district}</small>` : ''}`
+    // 名称 + 所在区域（用 textContent，接口返回的文本不当 HTML 解析）
+    const nameEl = document.createElement('span')
+    nameEl.textContent = tip.name
+    li.appendChild(nameEl)
 
-    const [lng, lat] = tip.location.split(',')
+    // 只在名称里还没包含区县时才补一个灰字，避免出现"乌鲁木齐市新市区 新市区"
+    const district = asText(tip.district)
+    if (district && !tip.name.includes(district)) {
+      const small = document.createElement('small')
+      small.textContent = district
+      li.appendChild(small)
+    }
 
     li.addEventListener('click', () => {
       resultsEl.classList.add('hidden')
       cityInput.value = ''
 
       // 优先用 district 或 name 作为城市名
-      let name = tip.district || tip.name || '未知'
-      name = name.trim() || '未知'
+      const name = (district || tip.name || '未知').trim() || '未知'
 
       fetchWeather({
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lng),
+        ...loc,
         shortName: name,
-        fullName: tip.district || tip.name
+        fullName: district || tip.name
       })
     })
 
@@ -174,19 +275,10 @@ async function fetchWeather(loc) {
     // ===== 第 1 步：高德逆地理编码，补全城市名 =====
     if (!loc.fullName || loc.fullName === '当前位置') {
       try {
-        const regeoRes = await fetch(
-          `https://restapi.amap.com/v3/geocode/regeo?location=${loc.longitude},${loc.latitude}&key=${AMAP_KEY}`
-        )
-        const regeoData = await regeoRes.json()
-
-        if (regeoData.status === '1' && regeoData.regeocode) {
-          const addressComp = regeoData.regeocode.addressComponent
-          const district = addressComp.district || ''
-          const city = addressComp.city || ''
-          const province = addressComp.province || ''
-
-          loc.shortName = district || city || province || '当前位置'
-          loc.fullName = [district || city, province].filter(Boolean).join(' · ') || '当前位置'
+        const info = await reverseGeocode(loc)
+        if (info) {
+          loc.shortName = info.shortName
+          loc.fullName = info.fullName
         }
       } catch (err) {
         console.error('高德逆地理编码失败:', err)
