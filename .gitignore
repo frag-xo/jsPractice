@@ -1,0 +1,14 @@
+# 与本源库无关的目录：投票项目有独立仓库，不要复制进来
+Online_voting/
+
+# 依赖
+node_modules/
+
+# 系统 / 编辑器
+.DS_Store
+.vscode/
+.idea/
+
+# 本地环境变量（代理的 Key 不要进仓库）
+.env
+.env.*

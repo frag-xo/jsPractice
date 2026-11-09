@@ -45,6 +45,7 @@
       <button class="tab active" type="button" data-tab="records">记录</button>
       <button class="tab" type="button" data-tab="stats">统计</button>
       <button class="tab" type="button" data-tab="compare">对比</button>
+      <button class="tab" type="button" data-tab="ai">AI 分析</button>
       <button class="tab" type="button" data-tab="settings">设置</button>
     </nav>
 
@@ -159,6 +160,45 @@
         </div>
         <button id="compareBtn" type="button">开始对比</button>
         <div id="compareResult" class="compare-result"></div>
+      </div>
+    </section>
+
+    <!-- AI 分析页 -->
+    <section id="tab-ai" class="tab-panel">
+      <div class="card">
+        <h3>AI 财务分析</h3>
+        <div class="form-row ai-toolbar">
+          <input id="aiPeriod" type="month" aria-label="分析月份">
+          <button id="aiGenerateBtn" type="button">生成分析</button>
+          <button id="aiRefreshBtn" type="button" class="secondary-btn" title="忽略缓存重新生成">重新生成</button>
+        </div>
+        <p id="aiHint" class="hint"></p>
+        <div id="aiStatus" class="ai-status" hidden></div>
+        <div id="aiResult" class="ai-result"></div>
+      </div>
+
+      <div class="card">
+        <h3>AI 设置</h3>
+        <div class="form-row">
+          <input id="aiApiKey" type="password" placeholder="智谱 API Key（只存在本机浏览器）" autocomplete="off" aria-label="智谱 API Key">
+          <button id="aiSaveKeyBtn" type="button">保存</button>
+          <button id="aiClearKeyBtn" type="button" class="secondary-btn">清除</button>
+        </div>
+        <div class="form-row">
+          <input id="aiProxyUrl" type="text" placeholder="代理地址（可选，填写后优先使用）" autocomplete="off" aria-label="代理地址">
+          <button id="aiSaveProxyBtn" type="button">保存代理</button>
+          <button id="aiClearProxyBtn" type="button" class="secondary-btn">清除</button>
+        </div>
+        <p id="aiModeHint" class="hint"></p>
+        <p class="hint">
+          <strong>双模式说明：</strong>填了代理地址就走服务端转发（生产推荐，Key 不落前端）；
+          只填 Key 则由浏览器直连智谱开放平台，仅适合本地演示。两者都不填也能用 —— 会自动按规则生成一份本地版分析。
+        </p>
+        <div class="ai-usage">
+          <span id="aiUsage"></span>
+          <button id="aiClearCacheBtn" type="button" class="link-btn">清空报告缓存</button>
+          <button id="aiResetUsageBtn" type="button" class="link-btn">重置用量</button>
+        </div>
       </div>
     </section>
 

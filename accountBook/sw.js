@@ -13,7 +13,7 @@
    图片/字体等静态资源走"缓存优先"。缓存名升级到 v2，activate 时清掉旧缓存。
    ============================================================ */
 
-const CACHE = 'account-book-v2'
+const CACHE = 'account-book-v3'
 
 const PRECACHE = [
   './',
@@ -29,7 +29,15 @@ const PRECACHE = [
   './js/tracker.js',
   './js/storage.js',
   './js/render.js',
-  './js/charts.js'
+  './js/charts.js',
+  './js/ai/index.js',
+  './js/ai/config.js',
+  './js/ai/aggregate.js',
+  './js/ai/prompt.js',
+  './js/ai/client.js',
+  './js/ai/schema.js',
+  './js/ai/fallback.js',
+  './js/ai/cache.js'
 ]
 
 // 这些文件要求"先联网拿最新的"，拿不到再回退缓存

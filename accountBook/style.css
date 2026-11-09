@@ -657,3 +657,147 @@ button.secondary:hover { background: var(--hover); }
   color: var(--expense);
   font-size: 13px;
 }
+/* ============ AI 分析模块 ============ */
+
+.ai-toolbar { flex-wrap: wrap; }
+
+.ai-status {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-light);
+}
+
+.ai-status.is-loading { display: flex; align-items: center; gap: 8px; }
+.ai-status.is-error { border-color: var(--expense); color: var(--expense); }
+.ai-status.is-info { border-color: var(--primary); color: var(--primary); }
+
+.ai-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: ai-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+
+.ai-result:empty { display: none; }
+
+.ai-report {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.ai-report-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ai-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  background: var(--input-bg);
+  white-space: nowrap;
+}
+
+.ai-badge.is-ai { border-color: var(--primary); color: var(--primary); }
+.ai-badge.is-fallback { border-color: #f59e0b; color: #b45309; }
+.ai-badge.is-cache { border-color: var(--income); color: var(--income); }
+
+.ai-meta {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-left: auto;
+}
+
+.ai-summary {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.ai-highlights { display: flex; flex-direction: column; gap: 8px; }
+
+.ai-highlight {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  background: var(--input-bg);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.ai-highlight.is-overspend { border-left-color: var(--expense); }
+.ai-highlight.is-warning   { border-left-color: #f59e0b; }
+.ai-highlight.is-trend     { border-left-color: var(--primary); }
+.ai-highlight.is-positive  { border-left-color: var(--income); }
+
+.ai-suggestions {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-suggestions li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.ai-suggestions li::before {
+  content: "→";
+  position: absolute;
+  left: 2px;
+  color: var(--primary);
+}
+
+.ai-usage {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-btn:hover { color: var(--primary-dark); }
+
+@media (max-width: 640px) {
+  .ai-meta { margin-left: 0; width: 100%; }
+  .ai-report { padding: 12px; }
+}

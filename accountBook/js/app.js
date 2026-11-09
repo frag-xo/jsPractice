@@ -4,6 +4,10 @@ import {
   renderCategoryManager, renderYearMonthOptions, renderCompareResult
 } from './render.js'
 import { renderPieChart, renderLineChart, resizeCharts } from './charts.js'
+import {
+  generateReport, describeSummary, getMode, getApiKey, setApiKey,
+  getProxyUrl, setProxyUrl, getUsage, resetUsage, clearAllCache, cacheCount
+} from './ai/index.js'
 
 const tracker = new ExpenseTracker()
 
@@ -60,6 +64,24 @@ const period1Year = $('period1Year')
 const period2Year = $('period2Year')
 const compareBtn = $('compareBtn')
 const compareResult = $('compareResult')
+
+// ===== AI 分析页 DOM =====
+const aiPeriod = $('aiPeriod')
+const aiGenerateBtn = $('aiGenerateBtn')
+const aiRefreshBtn = $('aiRefreshBtn')
+const aiHint = $('aiHint')
+const aiStatus = $('aiStatus')
+const aiResult = $('aiResult')
+const aiApiKey = $('aiApiKey')
+const aiSaveKeyBtn = $('aiSaveKeyBtn')
+const aiClearKeyBtn = $('aiClearKeyBtn')
+const aiProxyUrl = $('aiProxyUrl')
+const aiSaveProxyBtn = $('aiSaveProxyBtn')
+const aiClearProxyBtn = $('aiClearProxyBtn')
+const aiModeHint = $('aiModeHint')
+const aiUsage = $('aiUsage')
+const aiClearCacheBtn = $('aiClearCacheBtn')
+const aiResetUsageBtn = $('aiResetUsageBtn')
 
 /**
  * 统一的事件绑定。
@@ -347,6 +369,173 @@ on(themeBtn, 'click', () => {
   refreshCharts() // 图表文字颜色跟着主题走
 })
 
+// ===== AI 分析 =====
+let aiRunning = false
+
+const HIGHLIGHT_LABEL = {
+  overspend: '超支',
+  warning: '留意',
+  trend: '趋势',
+  positive: '不错'
+}
+
+function setAIStatus(text, kind = 'info', withSpinner = false) {
+  if (!aiStatus) return
+  aiStatus.hidden = false
+  aiStatus.className = `ai-status is-${kind}`
+  aiStatus.innerHTML = ''
+  if (withSpinner) {
+    const spinner = document.createElement('span')
+    spinner.className = 'ai-spinner'
+    aiStatus.appendChild(spinner)
+  }
+  const label = document.createElement('span')
+  label.textContent = text
+  aiStatus.appendChild(label)
+}
+
+function clearAIStatus() {
+  if (!aiStatus) return
+  aiStatus.hidden = true
+  aiStatus.innerHTML = ''
+}
+
+/** 把一次 generateReport 的结果渲染成卡片 */
+function renderAIReport(result) {
+  if (!aiResult) return
+  aiResult.innerHTML = ''
+
+  const { report, source, fromCache, data } = result
+  if (!report) return
+
+  const wrap = document.createElement('div')
+  wrap.className = 'ai-report'
+
+  const head = document.createElement('div')
+  head.className = 'ai-report-head'
+
+  const badge = document.createElement('span')
+  if (source === 'ai') {
+    badge.className = 'ai-badge is-ai'
+    badge.textContent = fromCache ? 'AI 生成 · 缓存' : 'AI 生成'
+  } else {
+    badge.className = 'ai-badge is-fallback'
+    badge.textContent = '本地规则生成'
+  }
+  head.appendChild(badge)
+
+  const meta = document.createElement('span')
+  meta.className = 'ai-meta'
+  meta.textContent = `${data.period} · ${data.recordCount} 条记录 · 支出 ${data.total.expense} 元`
+  head.appendChild(meta)
+
+  wrap.appendChild(head)
+
+  const summary = document.createElement('p')
+  summary.className = 'ai-summary'
+  summary.textContent = report.summary
+  wrap.appendChild(summary)
+
+  if (report.highlights?.length) {
+    const list = document.createElement('div')
+    list.className = 'ai-highlights'
+    report.highlights.forEach(item => {
+      const el = document.createElement('div')
+      el.className = `ai-highlight is-${item.type || 'trend'}`
+      const tag = HIGHLIGHT_LABEL[item.type]
+      el.textContent = tag ? `【${tag}】${item.text}` : item.text
+      list.appendChild(el)
+    })
+    wrap.appendChild(list)
+  }
+
+  if (report.suggestions?.length) {
+    const ul = document.createElement('ul')
+    ul.className = 'ai-suggestions'
+    report.suggestions.forEach(text => {
+      const li = document.createElement('li')
+      li.textContent = text
+      ul.appendChild(li)
+    })
+    wrap.appendChild(ul)
+  }
+
+  aiResult.appendChild(wrap)
+}
+
+/** 刷新模式提示、用量、缓存数 */
+function refreshAIPanel() {
+  if (aiModeHint) {
+    const mode = getMode()
+    if (mode === 'proxy') {
+      aiModeHint.textContent = `当前模式：代理转发（${getProxyUrl()}），API Key 保存在服务端`
+    } else if (mode === 'direct') {
+      aiModeHint.textContent = '当前模式：浏览器直连智谱开放平台。Key 只存在本机，仅建议本地演示使用'
+    } else {
+      aiModeHint.textContent = '当前模式：未配置 AI —— 仍可生成报告，将使用本地规则版分析'
+    }
+  }
+
+  if (aiUsage) {
+    const usage = getUsage()
+    const total = usage.promptTokens + usage.completionTokens
+    aiUsage.textContent = usage.calls
+      ? `累计调用 ${usage.calls} 次，约 ${total} tokens；缓存 ${cacheCount()} 份报告`
+      : `还没有调用过 AI；缓存 ${cacheCount()} 份报告`
+  }
+
+  if (aiApiKey && !aiApiKey.value) aiApiKey.value = getApiKey()
+  if (aiProxyUrl && !aiProxyUrl.value) aiProxyUrl.value = getProxyUrl()
+}
+
+/** 生成报告的主流程 */
+async function runAI(force = false) {
+  if (aiRunning) return
+
+  const periodValue = aiPeriod?.value
+  if (!periodValue) {
+    setAIStatus('请先选择要分析的月份', 'error')
+    return
+  }
+  const [year, month] = periodValue.split('-')
+  const records = tracker.filter({ year, month })
+
+  if (records.length === 0) {
+    aiResult.innerHTML = ''
+    setAIStatus(`${year} 年 ${Number(month)} 月还没有记录，先记几笔账再来分析吧`, 'info')
+    return
+  }
+
+  aiRunning = true
+  if (aiGenerateBtn) aiGenerateBtn.disabled = true
+  if (aiRefreshBtn) aiRefreshBtn.disabled = true
+  setAIStatus(force ? '正在重新生成分析…' : '正在分析…', 'info', true)
+
+  try {
+    const result = await generateReport(tracker, { year, month: Number(month), force })
+    renderAIReport(result)
+
+    if (result.source === 'ai') {
+      setAIStatus(
+        result.fromCache
+          ? '已命中缓存（数据没有变化，直接复用了上次结果）'
+          : '分析完成',
+        'info'
+      )
+    } else {
+      setAIStatus(result.message || '当前使用本地规则生成', 'error')
+    }
+  } catch (error) {
+    console.error('[AI] 生成失败：', error)
+    setAIStatus('生成失败：' + (error?.message || '未知错误'), 'error')
+  } finally {
+    aiRunning = false
+    if (aiGenerateBtn) aiGenerateBtn.disabled = false
+    if (aiRefreshBtn) aiRefreshBtn.disabled = false
+    refreshAIPanel()
+  }
+}
+
 // ===== 图表 =====
 function refreshCharts() {
   renderPieChart(pieChartEl, tracker.getCategoryStats())
@@ -364,10 +553,83 @@ function switchTab(name) {
       resizeCharts()
     })
   }
+  if (name === 'ai') {
+    // 每次进入都刷新模式提示与用量，避免设置改过之后这里没更新
+    refreshAIPanel()
+  }
 }
 
 document.querySelectorAll('.tab').forEach(tab => {
   on(tab, 'click', () => switchTab(tab.dataset.tab))
+})
+
+// ===== AI 分析事件 =====
+on(aiGenerateBtn, 'click', () => runAI(false))
+on(aiRefreshBtn, 'click', () => runAI(true))
+
+on(aiPeriod, 'change', () => {
+  // 换月份后清掉上一次的结果，避免新旧月份混看
+  if (aiResult) aiResult.innerHTML = ''
+  clearAIStatus()
+})
+
+on(aiSaveKeyBtn, 'click', () => {
+  const key = (aiApiKey?.value || '').trim()
+  if (!key) {
+    alert('请先填写 API Key')
+    return
+  }
+  if (!setApiKey(key)) {
+    alert('保存失败：浏览器存储可能被禁用或已满')
+    return
+  }
+  refreshAIPanel()
+  setAIStatus('API Key 已保存到本机浏览器', 'info')
+})
+
+on(aiClearKeyBtn, 'click', () => {
+  setApiKey('')
+  if (aiApiKey) aiApiKey.value = ''
+  refreshAIPanel()
+  setAIStatus('已清除本机保存的 API Key', 'info')
+})
+
+on(aiSaveProxyBtn, 'click', () => {
+  const url = (aiProxyUrl?.value || '').trim()
+  if (!url) {
+    alert('请先填写代理地址')
+    return
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    alert('代理地址需要以 http:// 或 https:// 开头')
+    return
+  }
+  if (!setProxyUrl(url)) {
+    alert('保存失败：浏览器存储可能被禁用或已满')
+    return
+  }
+  refreshAIPanel()
+  setAIStatus('已切换到代理模式', 'info')
+})
+
+on(aiClearProxyBtn, 'click', () => {
+  setProxyUrl('')
+  if (aiProxyUrl) aiProxyUrl.value = ''
+  refreshAIPanel()
+  setAIStatus('已清除代理地址', 'info')
+})
+
+on(aiClearCacheBtn, 'click', () => {
+  const count = clearAllCache()
+  refreshAIPanel()
+  setAIStatus(count ? `已清空 ${count} 份缓存的报告` : '当前没有缓存', 'info')
+})
+
+on(aiResetUsageBtn, 'click', () => {
+  if (!confirm('确定要重置调用次数和 token 统计吗？')) return
+  resetUsage()
+  refreshAIPanel()
+  setAIStatus('用量统计已重置', 'info')
 })
 
 // ===== 分类管理 =====
@@ -600,6 +862,16 @@ function init() {
   }
   if (period1Year && !period1Year.value) period1Year.value = String(new Date().getFullYear())
   if (period2Year && !period2Year.value) period2Year.value = String(new Date().getFullYear() - 1)
+
+  // AI 分析页：默认本月，并同步当前模式与用量
+  if (aiPeriod && !aiPeriod.value) aiPeriod.value = formatMonth()
+  refreshAIPanel()
+
+  // 支持用 URL hash 直达某个标签页，例如 index.html#ai
+  const hashTab = location.hash.replace('#', '')
+  if (hashTab && document.getElementById(`tab-${hashTab}`)) {
+    switchTab(hashTab)
+  }
 
   registerServiceWorker()
 }
