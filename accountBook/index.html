@@ -15,6 +15,30 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!--
+    file:// 协议下浏览器会阻止 ES Modules 加载（CORS 限制），
+    导致整页 JS 不执行、导航点不动。这里用内联脚本（不受该限制）给出提示。
+  -->
+  <script>
+    if (location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', function () {
+        var tip = document.createElement('div')
+        tip.style.cssText = [
+          'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:9999',
+          'background:#fff8e1', 'color:#8a6d3b', 'padding:14px 18px',
+          'font-size:13px', 'line-height:1.7', 'border-bottom:1px solid #ffe0a3',
+          'font-family:-apple-system,"PingFang SC",sans-serif'
+        ].join(';')
+        tip.innerHTML =
+          '<b>⚠️ 当前是直接双击打开（file:// 协议），浏览器会阻止 ES Modules 加载，页面无法交互。</b><br>' +
+          '请改用以下任一方式：<br>' +
+          '① 在线版：<a href="https://frag-xo.github.io/jsPractice/accountBook/" style="color:#0e94b8">frag-xo.github.io/jsPractice/accountBook/</a><br>' +
+          '② 本地起服务：在该目录执行 <code style="background:#fff;padding:1px 5px;border-radius:3px">python3 -m http.server 8000</code>，再访问 <code style="background:#fff;padding:1px 5px;border-radius:3px">http://localhost:8000</code>'
+        document.body.prepend(tip)
+      })
+    }
+  </script>
+
   <div class="app">
     <!-- 顶部统计 -->
     <header class="top">
